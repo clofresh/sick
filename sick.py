@@ -43,7 +43,8 @@ class Sick(object):
         data = self.get('show.seasons', tvdbid=tvdbid).json()
         seasons = ((int(num), season) for num, season in data['data'].items())
         for season_num, season in sorted(seasons):
-            episodes = ((int(num), ep['name']) for num, ep in season.items())
+            episodes = ((int(num), ep['name']) for num, ep in season.items()
+                        if ep.get('status') == 'Downloaded')
             for episode_num, episode_name in sorted(episodes):
                 print("s{:02}e{:02}\t{}".format(season_num, episode_num, episode_name))
         return 0
