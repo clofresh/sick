@@ -19,8 +19,17 @@ except ImportError: # python2
 
 import requests
 
-class IdNotFound(Exception):
+class TvDbIdNotFound(Exception):
     'Raised if no tvdbid could be found for a show name'
+
+class AccessDenied(Exception):
+    'Raised if the api returns a json object whose result field is `denied`'
+
+class QueryFailure(Exception):
+    'Raised if api returns a json object whose result field is `failure`'
+
+class InvalidEpisodeId(Exception):
+    'Raised if passed an invalid episode id'
 
 class Sick(object):
     def __init__(self, host, api_key):
@@ -30,10 +39,18 @@ class Sick(object):
     def get(self, cmd, **params):
         params['cmd'] = cmd
         qstr = urlencode(params)
-        return requests.get('http://{}/api/{}/?{}'.format(self.host, self.api_key, qstr))
+        response = requests.get('http://{}/api/{}/?{}'.format(self.host, self.api_key, qstr))
+        body = response.json()
+        result = body.get('result')
+        if result == 'denied':
+            raise AccessDenied(body.get('message', ''))
+        elif result == 'failure':
+            raise QueryFailure(body.get('message', ''))
+        else:
+            return body, response
 
     def shows(self):
-        data = self.get('shows').json()
+        data, _ = self.get('shows')
         shows = ((show['show_name'], tvdbid) for tvdbid, show
                  in data['data'].items())
         for show_name, tvdbid in sorted(shows):
@@ -41,7 +58,7 @@ class Sick(object):
         return 0
 
     def episodes(self, tvdbid=None, show_name=None):
-        data = self.get('show.seasons', tvdbid=tvdbid).json()
+        data, _ = self.get('show.seasons', tvdbid=tvdbid)
         seasons = ((int(num), season) for num, season in data['data'].items())
         for season_num, season in sorted(seasons):
             episodes = ((int(num), ep['name']) for num, ep in season.items()
@@ -52,7 +69,7 @@ class Sick(object):
 
     def episode(self, episode, tvdbid=None, show_name=None, ):
         season, episode_num = episode
-        data = self.get('episode', tvdbid=tvdbid, season=season, episode=episode_num, full_path=1).json()
+        data, _ = self.get('episode', tvdbid=tvdbid, season=season, episode=episode_num, full_path=1)
         location = data['data']['location']
         if location:
             print(location)
@@ -61,14 +78,14 @@ class Sick(object):
             return 1
 
     def find_tvdbid(self, show_name):
-        data = self.get('shows').json()
+        data, _ = self.get('shows')
         shows = ((strip_name(show['show_name']), tvdbid) for tvdbid, show
                  in data['data'].items())
         to_compare = strip_name(show_name)
         for possible_show_name, tvdbid in shows:
             if to_compare == possible_show_name:
                 return tvdbid
-        raise IdNotFound()
+        raise TvDbIdNotFound(show_name)
 
 def strip_name(name):
     return re.sub('[^a-z]', '', name.lower())
@@ -79,7 +96,7 @@ def parse_episode(episode_str):
         season, ep = match.groups()
         return int(season), int(ep)
     else:
-        raise Exception('Could not parse {}'.format(episode_str))
+        raise InvalidEpisodeId('Could not parse episode id {}. Must look something like s03e10'.format(episode_str))
 
 def main(args):
     config = ConfigParser()
@@ -119,18 +136,28 @@ def main(args):
         except Exception:
             try:
                 parsed['tvdbid'] = sick.find_tvdbid(input_args[0])
-            except IdNotFound:
-                print('Could not find id for {}'.format(input_args[0]), file=sys.stderr)
+            except TvDbIdNotFound as e:
+                print('Could not find TVDB id for {}'.format(e), file=sys.stderr)
                 return 1
 
         if num_args == 1:
             cmd = 'episodes'
         else:
             cmd = 'episode'
-            parsed['episode'] = parse_episode(input_args[1])
+            try:
+                parsed['episode'] = parse_episode(input_args[1])
+            except InvalidEpisodeId as e:
+                print(e)
+                return 1
 
     try:
         return getattr(sick, cmd)(**parsed)
+    except AccessDenied as e:
+        print('Could not connect to SickBeard API: {}'.format(e), file=sys.stderr)
+        return 1
+    except QueryFailure as e:
+        print('Query to SickBeard API failed: {}'.format(e), file=sys.stderr)
+        return 1
     except Exception:
         traceback.print_exc()
         return 1
