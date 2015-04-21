@@ -13,8 +13,9 @@ except ImportError: # python2
 
 try:
     from configparser import ConfigParser
+    NoSectionError = None
 except ImportError: # python2
-    from ConfigParser import ConfigParser
+    from ConfigParser import ConfigParser, NoSectionError
 
 import requests
 
@@ -88,7 +89,10 @@ def main(args):
     except KeyError:
         sick_config = {}
     except AttributeError: # python2
-        sick_config = dict(config.items('sick'))
+        try:
+            sick_config = dict(config.items('sick'))
+        except NoSectionError:
+            sick_config = {}
     parser = argparse.ArgumentParser()
     default_host = sick_config.get('host')
     host_required = default_host is None
