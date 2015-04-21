@@ -1,4 +1,6 @@
-*.pyc
-sick.ini
 build
 *.egg-info
+.eggs
+*.pyc
+sick.ini
+.tox
