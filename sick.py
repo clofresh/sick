@@ -1,9 +1,20 @@
+from __future__ import print_function # python2
+
 import argparse
 import os
 import re
 import sys
-import urllib
-from configparser import ConfigParser
+import traceback
+
+try:
+    from urllib.parse import urlencode
+except ImportError: # python2
+    from urllib import urlencode
+
+try:
+    from configparser import ConfigParser
+except ImportError: # python2
+    from ConfigParser import ConfigParser
 
 import requests
 
@@ -17,7 +28,7 @@ class Sick(object):
 
     def get(self, cmd, **params):
         params['cmd'] = cmd
-        qstr = urllib.parse.urlencode(params)
+        qstr = urlencode(params)
         return requests.get('http://{}/api/{}/?{}'.format(self.host, self.api_key, qstr))
 
     def shows(self):
@@ -75,6 +86,8 @@ def main(args):
         sick_config = config['sick']
     except KeyError:
         sick_config = {}
+    except AttributeError: # python2
+        sick_config = dict(config.items('sick'))
     parser = argparse.ArgumentParser()
     default_host = sick_config.get('host')
     host_required = default_host is None
@@ -113,8 +126,8 @@ def main(args):
 
     try:
         return getattr(sick, cmd)(**parsed)
-    except Exception as e:
-        print(e)
+    except Exception:
+        traceback.print_exc()
         return 1
 
 if __name__ == '__main__':
