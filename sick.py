@@ -31,6 +31,8 @@ class QueryFailure(Exception):
 class InvalidEpisodeId(Exception):
     'Raised if passed an invalid episode id'
 
+ErrorPrintAsIs = (AccessDenied, QueryFailure, InvalidEpisodeId)
+
 class Sick(object):
     def __init__(self, host, api_key):
         self.host = host
@@ -44,7 +46,7 @@ class Sick(object):
         result = body.get('result')
         if result == 'denied':
             raise AccessDenied(body.get('message', ''))
-        elif result == 'failure':
+        elif result == 'failure' or result == 'error':
             raise QueryFailure(body.get('message', ''))
         else:
             return body, response
@@ -128,38 +130,28 @@ def main(args):
     input_args = parsed.pop('args')
 
     num_args = len(input_args)
-    if num_args == 0:
-        cmd = 'shows'
-    else:
-        try:
-            parsed['tvdbid'] = int(input_args[0])
-        except Exception:
-            try:
-                parsed['tvdbid'] = sick.find_tvdbid(input_args[0])
-            except TvDbIdNotFound as e:
-                print('Could not find TVDB id for {}'.format(e), file=sys.stderr)
-                return 1
-
-        if num_args == 1:
-            cmd = 'episodes'
-        else:
-            cmd = 'episode'
-            try:
-                parsed['episode'] = parse_episode(input_args[1])
-            except InvalidEpisodeId as e:
-                print(e)
-                return 1
 
     try:
+        if num_args == 0:
+            cmd = 'shows'
+        else:
+            try:
+                parsed['tvdbid'] = int(input_args[0])
+            except Exception:
+                parsed['tvdbid'] = sick.find_tvdbid(input_args[0])
+
+            if num_args == 1:
+                cmd = 'episodes'
+            else:
+                cmd = 'episode'
+                parsed['episode'] = parse_episode(input_args[1])
+
         return getattr(sick, cmd)(**parsed)
-    except AccessDenied as e:
-        print('Could not connect to SickBeard API: {}'.format(e), file=sys.stderr)
+    except ErrorPrintAsIs as e:
+        print(e, file=sys.stderr)
         return 1
-    except QueryFailure as e:
-        print('Query to SickBeard API failed: {}'.format(e), file=sys.stderr)
-        return 1
-    except Exception:
-        traceback.print_exc()
+    except TvDbIdNotFound as e:
+        print('Could not find TVDB id for {}'.format(e), file=sys.stderr)
         return 1
 
 if __name__ == '__main__':
