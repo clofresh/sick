@@ -1,2 +1,4 @@
 *.pyc
 sick.ini
+build
+*.egg-info

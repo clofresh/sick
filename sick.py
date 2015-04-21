@@ -100,7 +100,7 @@ def parse_episode(episode_str):
     else:
         raise InvalidEpisodeId('Could not parse episode id {}. Must look something like s03e10'.format(episode_str))
 
-def main(args):
+def main(args=None):
     config = ConfigParser()
     config.read(['sick.ini', os.path.expanduser('~/.sick.ini'), os.path.expanduser('~/.config/sick/sick.ini')])
     try:
