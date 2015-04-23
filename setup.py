@@ -17,6 +17,7 @@ except ImportError:
     from distutils.core import setup
     kws = {}
 
-kws['packages'] = ['sick']
-kws['py_modules'] = ['sick.core', 'sick.test', 'sick.version']
+kws['packages'] = ['sick', 'sick.test']
+kws['py_modules'] = ['sick.core', 'sick.test.episodes', 'sick.test.shows',
+                     'sick.version']
 setup(name='sick', version=__version__, **kws)
