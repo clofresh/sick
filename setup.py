@@ -11,11 +11,12 @@ try:
 
     kws = {
         'install_requires': install_requires,
-        'entry_points': {'console_scripts': ['sick = sick:main']},
+        'entry_points': {'console_scripts': ['sick = sick.core:main']},
     }
 except ImportError:
     from distutils.core import setup
     kws = {}
 
-kws['py_modules'] = ['sick', 'sick.core', 'sick.test', 'sick.version']
+kws['packages'] = ['sick']
+kws['py_modules'] = ['sick.core', 'sick.test', 'sick.version']
 setup(name='sick', version=__version__, **kws)
