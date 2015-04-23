@@ -40,7 +40,7 @@ class Sick(object):
 
     def get(self, cmd, **params):
         params['cmd'] = cmd
-        qstr = urlencode(params)
+        qstr = urlencode(sorted(params.items()))
         response = requests.get('http://{}/api/{}/?{}'.format(self.host, self.api_key, qstr))
         body = response.json()
         result = body.get('result')
