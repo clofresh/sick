@@ -3,9 +3,9 @@ import sys
 import unittest
 
 import responses
-import requests
 
 from sick.core import main as sick_main
+
 
 class TestSickShows(unittest.TestCase):
     @responses.activate

@@ -1,37 +1,41 @@
-from __future__ import print_function # python2
+from __future__ import print_function  # python2
 
 import argparse
 import os
 import re
 import sys
-import traceback
 
 try:
     from urllib.parse import urlencode
-except ImportError: # python2
+except ImportError:  # python2
     from urllib import urlencode
 
 try:
     from configparser import ConfigParser
     NoSectionError = None
-except ImportError: # python2
+except ImportError:  # python2
     from ConfigParser import ConfigParser, NoSectionError
 
 import requests
 
+
 class TvDbIdNotFound(Exception):
     'Raised if no tvdbid could be found for a show name'
+
 
 class AccessDenied(Exception):
     'Raised if the api returns a json object whose result field is `denied`'
 
+
 class QueryFailure(Exception):
     'Raised if api returns a json object whose result field is `failure`'
+
 
 class InvalidEpisodeId(Exception):
     'Raised if passed an invalid episode id'
 
 ErrorPrintAsIs = (AccessDenied, QueryFailure, InvalidEpisodeId)
+
 
 class Sick(object):
     def __init__(self, host, api_key):
@@ -41,7 +45,8 @@ class Sick(object):
     def get(self, cmd, **params):
         params['cmd'] = cmd
         qstr = urlencode(sorted(params.items()))
-        response = requests.get('http://{}/api/{}/?{}'.format(self.host, self.api_key, qstr))
+        response = requests.get('http://{}/api/{}/?{}'.format(self.host,
+                                self.api_key, qstr))
         body = response.json()
         result = body.get('result')
         if result == 'denied':
@@ -66,12 +71,14 @@ class Sick(object):
             episodes = ((int(num), ep['name']) for num, ep in season.items()
                         if ep.get('status') == 'Downloaded')
             for episode_num, episode_name in sorted(episodes):
-                print("s{:02}e{:02}\t{}".format(season_num, episode_num, episode_name))
+                print("s{:02}e{:02}\t{}".format(season_num, episode_num,
+                                                episode_name))
         return 0
 
     def episode(self, episode, tvdbid=None, show_name=None, ):
         season, episode_num = episode
-        data, _ = self.get('episode', tvdbid=tvdbid, season=season, episode=episode_num, full_path=1)
+        data, _ = self.get('episode', tvdbid=tvdbid, season=season,
+                           episode=episode_num, full_path=1)
         location = data['data']['location']
         if location:
             print(location)
@@ -89,8 +96,10 @@ class Sick(object):
                 return tvdbid
         raise TvDbIdNotFound(show_name)
 
+
 def strip_name(name):
     return re.sub('[^a-z]', '', name.lower())
+
 
 def parse_episode(episode_str):
     match = re.match(r's(\d+)e(\d+)', episode_str)
@@ -98,16 +107,19 @@ def parse_episode(episode_str):
         season, ep = match.groups()
         return int(season), int(ep)
     else:
-        raise InvalidEpisodeId('Could not parse episode id {}. Must look something like s03e10'.format(episode_str))
+        raise InvalidEpisodeId('Could not parse episode id {}. Must look '
+                               + 'something like s03e10'.format(episode_str))
+
 
 def main(args=None):
     config = ConfigParser()
-    config.read(['sick.ini', os.path.expanduser('~/.sick.ini'), os.path.expanduser('~/.config/sick/sick.ini')])
+    config.read(['sick.ini', os.path.expanduser('~/.sick.ini'),
+                 os.path.expanduser('~/.config/sick/sick.ini')])
     try:
         sick_config = config['sick']
     except KeyError:
         sick_config = {}
-    except AttributeError: # python2
+    except AttributeError:  # python2
         try:
             sick_config = dict(config.items('sick'))
         except NoSectionError:
@@ -119,7 +131,8 @@ def main(args=None):
     api_key_required = default_api_key is None
 
     parser.add_argument('--host', default=default_host, required=host_required)
-    parser.add_argument('--api_key', default=default_api_key, required=api_key_required)
+    parser.add_argument('--api_key', default=default_api_key,
+                        required=api_key_required)
     parser.add_argument('args', nargs='*')
     parsed = vars(parser.parse_args(args))
 

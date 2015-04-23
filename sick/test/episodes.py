@@ -3,9 +3,9 @@ import sys
 import unittest
 
 import responses
-import requests
 
 from sick.core import main as sick_main
+
 
 class TestSickEpisodes(unittest.TestCase):
     @responses.activate
@@ -133,7 +133,8 @@ class TestSickEpisodes(unittest.TestCase):
                       match_querystring=True,
                       body=body, status=200, content_type='application/json')
 
-        result = sick_main(['--host', 'test', '--api_key', 'test_key', '176941'])
+        result = sick_main(['--host', 'test', '--api_key', 'test_key',
+                            '176941'])
         self.assertEquals(result, 0)
 
         expected = []
@@ -156,4 +157,3 @@ class TestSickEpisodes(unittest.TestCase):
             self.assertIn(ep, line)
             self.assertIn(name, line)
         self.assertEquals('', lines[3])
-
